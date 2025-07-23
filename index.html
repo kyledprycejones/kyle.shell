@@ -7,7 +7,7 @@
   <style>
     :root {
       --text-color: #00ff00;
-      --bg-color: #000000;
+      --bg-color: #000;
     }
     body {
       background-color: var(--bg-color);
@@ -15,12 +15,7 @@
       font-family: 'Courier New', monospace;
       margin: 0;
       padding: 20px;
-      overflow: hidden;
-      cursor: url('data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDBmZjAwIiB2aWV3Qm94PSIwIDAgNiA2IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiLz48L3N2Zz4='), auto;
-    }
-    #terminal {
-      position: relative;
-      z-index: 2;
+      overflow-y: auto;
     }
     .terminal-line {
       display: flex;
@@ -39,7 +34,6 @@
       outline: none;
       width: 100%;
       caret-color: var(--text-color);
-      animation: blink 1s step-end infinite;
     }
     .output {
       white-space: pre-wrap;
@@ -98,20 +92,22 @@
       border: 1px solid var(--text-color);
     }
 
-    /* CRT overlay effect */
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+    /* Mouse sparkles */
+    .sparkle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: var(--text-color);
+      border-radius: 50%;
       pointer-events: none;
-      background: repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.04), rgba(0, 255, 0, 0.04) 1px, transparent 1px, transparent 2px);
-      z-index: 1;
+      opacity: 0.8;
+      animation: fadeOut 0.6s forwards;
     }
-
-    @keyframes blink {
-      0%, 50%, 100% { opacity: 1; }
-      25%, 75% { opacity: 0; }
+    @keyframes fadeOut {
+      to {
+        transform: translateY(-10px) scale(0.5);
+        opacity: 0;
+      }
     }
   </style>
 </head>
@@ -142,9 +138,7 @@
 <div class="about-container">
   <img src="" alt="Your face" />
   <div>
-    I'm Kyle Pryce-Jones, a full-stack engineer with 5+ years of experience.
-    At RBC, I led OpenShift upgrades, automated deployments with Ansible and ArgoCD,
-    and enforced compliance on RHEL. I love cloud-native tech, scripting, and great UX.
+    My name's Kyle. I'm a Computer Engineer with a lot of drive to create infrastructure that's 'sexy'. My previous role was at the Royal Bank of Canada as a Senior Developer on the Openshift team. I'm currently looking for a new position in the start-up world. I graduated from Queens University in 2021 with a BASC in Computer Engineering.
   </div>
 </div>`,
 
@@ -159,11 +153,10 @@
 2. GitOps CI/CD — Kubernetes-based delivery using ArgoCD
 3. Secure AWS Cloud — Built WAF-protected infra with CloudTrail`,
 
-    "contact": `CONTACT
+    "contact info": `CONTACT INFO
 Email: your.email@example.com
 GitHub: https://github.com/yourusername
-LinkedIn: https://linkedin.com/in/yourprofile
-(Type 'contact me' to send a message)`,
+LinkedIn: https://linkedin.com/in/yourprofile`,
 
     "contact me": `CONTACT FORM
 <form class="contact-form" action="https://formspree.io/f/your_form_id" method="POST">
@@ -176,17 +169,14 @@ LinkedIn: https://linkedin.com/in/yourprofile
 
   const bootLines = [
     "[0.000] Booting Kyle OS...",
-    "[0.123] Loading user modules...",
-    "[0.234] Initializing resume shell...",
-    "[0.345] Mounting /projects... OK",
-    "[0.456] Loading history... OK",
-    "[0.567] Activating UX mode... OK",
+    "[0.123] Loading resume modules...",
+    "[0.234] Initializing prompt...",
     "[1.000] System Ready"
   ];
 
   async function showBootSequence() {
     for (const line of bootLines) {
-      bootEl.textContent += line + "\\n";
+      bootEl.textContent += line + "\n";
       await new Promise(r => setTimeout(r, 100));
     }
     setTimeout(() => {
@@ -196,18 +186,18 @@ LinkedIn: https://linkedin.com/in/yourprofile
   }
 
   function introLines() {
-    typeLine("Hi", () => {
-      typeLine("I'm Kyle", () => {
-        typeLine("Type 'about', 'skills', 'projects', 'contact', or 'contact me'", () => {
-          typeLine("Other commands: help, sudo, theme", () => {
-            addPrompt();
-          });
+    typeLineSlow("Hi,", () => {
+      setTimeout(() => {
+        typeLineSlow("I'm Kyle.", () => {
+          printOutput("Hint: Type about, skills, projects, contact info or contact me", false);
+          printOutput("Other commands: clear, help, theme", false);
+          addPrompt();
         });
-      });
+      }, 500);
     });
   }
 
-  function typeLine(text, cb) {
+  function typeLineSlow(text, cb) {
     let i = 0;
     const output = document.createElement("div");
     output.className = "output";
@@ -218,21 +208,13 @@ LinkedIn: https://linkedin.com/in/yourprofile
         clearInterval(interval);
         cb && cb();
       }
-    }, 20);
+    }, 100);
   }
 
   function printOutput(content, typewriter = true) {
     const output = document.createElement("div");
     output.className = "output";
-    if (!typewriter || content.includes("<form") || content.includes("class=")) {
-      output.innerHTML = content;
-    } else {
-      let i = 0;
-      const interval = setInterval(() => {
-        output.textContent += content[i++];
-        if (i >= content.length) clearInterval(interval);
-      }, 5);
-    }
+    output.innerHTML = content;
     terminal.appendChild(output);
     terminal.scrollTop = terminal.scrollHeight;
   }
@@ -291,12 +273,9 @@ LinkedIn: https://linkedin.com/in/yourprofile
   function handleCommand(command) {
     if (command === "") return printOutput("");
     if (command === "clear") return (terminal.innerHTML = "");
-    if (command === "help" || command === "?")
-      return printOutput("Available commands: " + Object.keys(commands).join(", ") + ", help, clear, theme <name>");
-    if (command === "sudo") return printOutput("Permission denied: You're not root.");
-    if (command === "uname -a") return printOutput("Linux KyleOS 1.0 #1 SMP Thu Jul 2025 x86_64 GNU/Linux");
-    if (command === "uptime") return printOutput("up 1 day, 3 users, load average: 0.00, 0.01, 0.05");
-
+    if (command === "help" || command === "?") {
+      return printOutput("Available commands: about, skills, projects, contact info, contact me, clear, help, theme");
+    }
     if (command.startsWith("theme")) {
       const [, themeName] = command.split(" ");
       const theme = themes[themeName];
@@ -309,13 +288,22 @@ LinkedIn: https://linkedin.com/in/yourprofile
       }
       return;
     }
-
     if (commands[command]) {
-      printOutput(commands[command], !command.includes("contact me"));
+      printOutput(commands[command], false);
     } else {
       printOutput(`<span class="error">command not found: ${command}</span>`, false);
     }
   }
+
+  // Sparkle trail
+  document.addEventListener("mousemove", (e) => {
+    const sparkle = document.createElement("div");
+    sparkle.className = "sparkle";
+    sparkle.style.left = `${e.pageX}px`;
+    sparkle.style.top = `${e.pageY}px`;
+    document.body.appendChild(sparkle);
+    setTimeout(() => sparkle.remove(), 600);
+  });
 
   showBootSequence();
 </script>
