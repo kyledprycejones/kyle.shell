@@ -201,11 +201,44 @@ LinkedIn: https://linkedin.com/in/yourprofile`,
 
   
   function introLines() {
+  typeLineSlow("Hi,", () => {
+    setTimeout(() => {
+      typeLineSlow("I'm Kyle.", () => {
+        setTimeout(() => {
+          typeLineFast("This is my website. \nYou'll notice that it's also a terminal.", () => {
+            setTimeout(() => {
+              const asciiSection = `
+<div class="ascii-banner">
+  <img src="Headshot.png" alt="Kyle headshot" class="intro-img"/>
+  <pre>
+
+██   ██ ██    ██ ██      ███████     ██████  ██████  ██    ██  ██████ ███████            ██  ██████  ███    ██ ███████ ███████ 
+██  ██   ██  ██  ██      ██          ██   ██ ██   ██  ██  ██  ██      ██                 ██ ██    ██ ████   ██ ██      ██      
+█████     ████   ██      █████       ██████  ██████    ████   ██      █████   █████      ██ ██    ██ ██ ██  ██ █████   ███████ 
+██  ██     ██    ██      ██          ██      ██   ██    ██    ██      ██            ██   ██ ██    ██ ██  ██ ██ ██           ██ 
+██   ██    ██    ███████ ███████     ██      ██   ██    ██     ██████ ███████        █████   ██████  ██   ████ ███████ ███████ 
+
+
+
+  </pre>
+</div>
+`;
+              printOutput(asciiSection, false);
+              printOutput("Hint: Type 'about', 'skills', 'projects', 'contact info' or 'contact me'", false);
+              printOutput("Other commands: clear, help, theme", false);
+              addPrompt();
+            }, 500);
+          });
+        }, 500);
+      });
+    }, 500);
+  });
+}
     typeLineSlow("Hi,", () => {
       setTimeout(() => {
         typeLineSlow("I'm Kyle.", () => {
           setTimeout(() => {
-            typeLineFast("This is my website. \nYou'll notice that it's also a terminal.", () => {
+            typeLineSlow("This is my website. \nYou'll notice that it's also a terminal.", () => {
               setTimeout(() => {
                 const asciiSection = `
 <div class="ascii-banner">
@@ -224,7 +257,7 @@ LinkedIn: https://linkedin.com/in/yourprofile`,
 </div>
 `;
                 printOutput(asciiSection, false);
-                printOutput("Hint: Type 'about',  'skills', 'resume', 'projects', 'contact info' or 'contact me'", false);
+                printOutput("Hint: Type 'about', 'skills', 'projects', 'contact info' or 'contact me'", false);
                 printOutput("Other commands: clear, help, theme", false);
                 addPrompt();
               }, 500);
@@ -250,7 +283,6 @@ function typeLineFast(text, cb) {
   }, 15);
 }
 
-
 function typeLineSlow(text, cb) {
     let i = 0;
     const output = document.createElement("div");
@@ -265,8 +297,7 @@ function typeLineSlow(text, cb) {
     }, 100);
   }
 
-  
-function printOutput(content, typewriter = true) {
+  function printOutput(content, typewriter = true) {
   const output = document.createElement("div");
   output.className = "output";
   terminal.appendChild(output);
@@ -282,7 +313,12 @@ function printOutput(content, typewriter = true) {
     output.innerHTML = content;
   }
 }
-
+    const output = document.createElement("div");
+    output.className = "output";
+    output.innerHTML = content;
+    terminal.appendChild(output);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
 
   function addPrompt() {
     const line = document.createElement("div");
