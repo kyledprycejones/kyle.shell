@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kyle OS - Terminal Resume</title>
+  <style>
+    :root {
+      --text-color: #00ff00;
+      --bg-color: #000000;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Courier New', monospace;
+      margin: 0;
+      padding: 20px;
+      overflow: hidden;
+      cursor: url('data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDBmZjAwIiB2aWV3Qm94PSIwIDAgNiA2IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSI2IiBoZWlnaHQ9IjYiLz48L3N2Zz4='), auto;
+    }
+    #terminal {
+      position: relative;
+      z-index: 2;
+    }
+    .terminal-line {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .prompt {
+      margin-right: 6px;
+    }
+    .input-field {
+      background: transparent;
+      border: none;
+      color: inherit;
+      font-family: inherit;
+      font-size: 1em;
+      outline: none;
+      width: 100%;
+      caret-color: var(--text-color);
+      animation: blink 1s step-end infinite;
+    }
+    .output {
+      white-space: pre-wrap;
+      margin: 4px 0 12px 0;
+    }
+    .error {
+      color: #ff3333;
+    }
+    .contact-form input,
+    .contact-form textarea {
+      background: transparent;
+      border: 1px solid var(--text-color);
+      color: inherit;
+      font-family: inherit;
+      padding: 4px;
+      margin: 4px 0;
+      width: 100%;
+    }
+    .contact-form button {
+      background: transparent;
+      border: 1px solid var(--text-color);
+      color: inherit;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+    #loading {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Courier New', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    #boot-sequence {
+      white-space: pre-wrap;
+      text-align: left;
+      max-width: 90%;
+      max-height: 80%;
+      overflow-y: auto;
+    }
+    .about-container {
+      display: flex;
+      gap: 2em;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .about-container img {
+      width: 120px;
+      height: 120px;
+      background: rgba(0, 255, 0, 0.05);
+      border: 1px solid var(--text-color);
+    }
+
+    /* CRT overlay effect */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      background: repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.04), rgba(0, 255, 0, 0.04) 1px, transparent 1px, transparent 2px);
+      z-index: 1;
+    }
+
+    @keyframes blink {
+      0%, 50%, 100% { opacity: 1; }
+      25%, 75% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div id="boot-sequence"></div>
+  <div style="margin-top: 2em; font-weight: bold;">one moment please...</div>
+</div>
+<div id="terminal"></div>
+
+<script>
+  const terminal = document.getElementById("terminal");
+  const bootEl = document.getElementById("boot-sequence");
+  const loadingScreen = document.getElementById("loading");
+  const shellPrompt = "kyle@portfolio:~$ ";
+  const commandHistory = JSON.parse(localStorage.getItem("commandHistory")) || [];
+  let historyIndex = commandHistory.length;
+
+  const themes = {
+    green: { text: '#00ff00', bg: '#000' },
+    amber: { text: '#ffbf00', bg: '#000' },
+    gray:  { text: '#cccccc', bg: '#222' }
+  };
+
+  const commands = {
+    "about": `ABOUT
+<div class="about-container">
+  <img src="" alt="Your face" />
+  <div>
+    I'm Kyle Pryce-Jones, a full-stack engineer with 5+ years of experience.
+    At RBC, I led OpenShift upgrades, automated deployments with Ansible and ArgoCD,
+    and enforced compliance on RHEL. I love cloud-native tech, scripting, and great UX.
+  </div>
+</div>`,
+
+    "skills": `SKILLS
+- Python: Backend scripting, automation
+- JavaScript: React, Node.js
+- AWS: Infrastructure & WAF
+- OpenShift: Container orchestration, GitOps`,
+
+    "projects": `PROJECTS
+1. OpenShift Cluster Upgrade — Automated w/ Ansible + ArgoCD
+2. GitOps CI/CD — Kubernetes-based delivery using ArgoCD
+3. Secure AWS Cloud — Built WAF-protected infra with CloudTrail`,
+
+    "contact": `CONTACT
+Email: your.email@example.com
+GitHub: https://github.com/yourusername
+LinkedIn: https://linkedin.com/in/yourprofile
+(Type 'contact me' to send a message)`,
+
+    "contact me": `CONTACT FORM
+<form class="contact-form" action="https://formspree.io/f/your_form_id" method="POST">
+  <label>Your Email:</label><input type="email" name="email" required>
+  <label>Subject:</label><input type="text" name="subject" required>
+  <label>Message:</label><textarea name="message" rows="4" required></textarea>
+  <button type="submit">Send</button>
+</form>`
+  };
+
+  const bootLines = [
+    "[0.000] Booting Kyle OS...",
+    "[0.123] Loading user modules...",
+    "[0.234] Initializing resume shell...",
+    "[0.345] Mounting /projects... OK",
+    "[0.456] Loading history... OK",
+    "[0.567] Activating UX mode... OK",
+    "[1.000] System Ready"
+  ];
+
+  async function showBootSequence() {
+    for (const line of bootLines) {
+      bootEl.textContent += line + "\\n";
+      await new Promise(r => setTimeout(r, 100));
+    }
+    setTimeout(() => {
+      loadingScreen.remove();
+      introLines();
+    }, 500);
+  }
+
+  function introLines() {
+    typeLine("Hi", () => {
+      typeLine("I'm Kyle", () => {
+        typeLine("Type 'about', 'skills', 'projects', 'contact', or 'contact me'", () => {
+          typeLine("Other commands: help, sudo, theme", () => {
+            addPrompt();
+          });
+        });
+      });
+    });
+  }
+
+  function typeLine(text, cb) {
+    let i = 0;
+    const output = document.createElement("div");
+    output.className = "output";
+    terminal.appendChild(output);
+    const interval = setInterval(() => {
+      output.textContent += text[i++];
+      if (i >= text.length) {
+        clearInterval(interval);
+        cb && cb();
+      }
+    }, 20);
+  }
+
+  function printOutput(content, typewriter = true) {
+    const output = document.createElement("div");
+    output.className = "output";
+    if (!typewriter || content.includes("<form") || content.includes("class=")) {
+      output.innerHTML = content;
+    } else {
+      let i = 0;
+      const interval = setInterval(() => {
+        output.textContent += content[i++];
+        if (i >= content.length) clearInterval(interval);
+      }, 5);
+    }
+    terminal.appendChild(output);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function addPrompt() {
+    const line = document.createElement("div");
+    line.className = "terminal-line";
+
+    const prompt = document.createElement("span");
+    prompt.className = "prompt";
+    prompt.textContent = shellPrompt;
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "input-field";
+    input.autocomplete = "off";
+
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        const cmd = input.value.trim();
+        if (cmd) {
+          commandHistory.push(cmd);
+          localStorage.setItem("commandHistory", JSON.stringify(commandHistory));
+        }
+        historyIndex = commandHistory.length;
+        input.disabled = true;
+        handleCommand(cmd);
+        addPrompt();
+      } else if (e.key === "ArrowUp") {
+        if (historyIndex > 0) {
+          historyIndex--;
+          input.value = commandHistory[historyIndex];
+        }
+      } else if (e.key === "ArrowDown") {
+        if (historyIndex < commandHistory.length - 1) {
+          historyIndex++;
+          input.value = commandHistory[historyIndex];
+        } else {
+          input.value = '';
+        }
+      } else if (e.key === "Tab") {
+        e.preventDefault();
+        const prefix = input.value.trim().toLowerCase();
+        const matches = Object.keys(commands).filter(c => c.startsWith(prefix));
+        if (matches.length === 1) input.value = matches[0];
+      }
+    });
+
+    line.appendChild(prompt);
+    line.appendChild(input);
+    terminal.appendChild(line);
+    input.focus();
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function handleCommand(command) {
+    if (command === "") return printOutput("");
+    if (command === "clear") return (terminal.innerHTML = "");
+    if (command === "help" || command === "?")
+      return printOutput("Available commands: " + Object.keys(commands).join(", ") + ", help, clear, theme <name>");
+    if (command === "sudo") return printOutput("Permission denied: You're not root.");
+    if (command === "uname -a") return printOutput("Linux KyleOS 1.0 #1 SMP Thu Jul 2025 x86_64 GNU/Linux");
+    if (command === "uptime") return printOutput("up 1 day, 3 users, load average: 0.00, 0.01, 0.05");
+
+    if (command.startsWith("theme")) {
+      const [, themeName] = command.split(" ");
+      const theme = themes[themeName];
+      if (theme) {
+        document.documentElement.style.setProperty("--text-color", theme.text);
+        document.documentElement.style.setProperty("--bg-color", theme.bg);
+        printOutput(`Theme switched to ${themeName}`);
+      } else {
+        printOutput("Available themes: green, amber, gray");
+      }
+      return;
+    }
+
+    if (commands[command]) {
+      printOutput(commands[command], !command.includes("contact me"));
+    } else {
+      printOutput(`<span class="error">command not found: ${command}</span>`, false);
+    }
+  }
+
+  showBootSequence();
+</script>
+
+</body>
+</html>
